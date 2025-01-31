@@ -23,7 +23,11 @@ class YESCodeRequest(BaseModel):
     kernbotschaft: str
 
 # GPT-API Schlüssel aus Umgebungsvariablen laden
-openai.api_key = os.getenv("OPENAI_API_KEY")
+OPENAI_API_KEY = os.getenv("OPENAI_API_KEY")
+if not OPENAI_API_KEY:
+    raise ValueError("OPENAI_API_KEY ist nicht gesetzt. Stelle sicher, dass die Umgebungsvariable korrekt definiert ist.")
+
+openai_client = openai.OpenAI(api_key=OPENAI_API_KEY)
 
 # API-Endpoint zur Generierung des Y.E.S. Codes
 @app.post("/generate_yes_code")
@@ -38,16 +42,17 @@ def generate_yes_code(request: YESCodeRequest):
             f"Formuliere es zu einem harmonischen, motivierenden Satz."
         )
         
-        # GPT-API-Aufruf
-        response = openai.ChatCompletion.create(
+        # GPT-API-Aufruf mit richtiger Syntax
+        response = openai_client.chat.completions.create(
             model="gpt-4",
-            messages=[{"role": "system", "content": "Du bist ein Experte für motivierende Sprache."},
-                      {"role": "user", "content": prompt}]
+            messages=[
+                {"role": "system", "content": "Du bist ein Experte für motivierende Sprache."},
+                {"role": "user", "content": prompt}
+            ]
         )
         
-        yes_code = response["choices"][0]["message"]["content"]
+        yes_code = response.choices[0].message.content
         
         return {"yes_code": yes_code}
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"Fehler bei der Verarbeitung: {str(e)}")
-
